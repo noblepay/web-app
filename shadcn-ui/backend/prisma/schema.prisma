@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  phone         String   @unique
+  password      String
+  firstName     String
+  lastName      String
+  dateOfBirth   DateTime?
+  country       String
+  isVerified    Boolean  @default(false)
+  kycStatus     String   @default("pending") // pending, approved, rejected
+  role          String   @default("customer") // customer, merchant, admin
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  accounts      Account[]
+  transactions  Transaction[]
+  bills         Bill[]
+  orders        Order[]
+  merchantProfile MerchantProfile?
+  
+  @@map("users")
+}
+
+model Account {
+  id          String   @id @default(cuid())
+  userId      String
+  accountType String   // wallet, savings, current
+  balance     Float    @default(0)
+  currency    String   @default("USD")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("accounts")
+}
+
+model Country {
+  id           String   @id @default(cuid())
+  code         String   @unique
+  name         String
+  currency     String
+  flag         String
+  exchangeRate Float
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@map("countries")
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String   // remittance, payment, bill, topup, marketplace
+  amount        Float
+  currency      String
+  recipientPhone String?  // Recipient phone
+  recipientName  String?  // Recipient name
+  recipientEmail String?  // Recipient email
+  status        String   @default("pending") // pending, completed, failed, cancelled
+  reference     String   @unique
+  description   String?
+  fee           Float    @default(0)
+  exchangeRate  Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("transactions")
+}
+
+model BillProvider {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   // electricity, water, internet, tv, mobile
+  country     String
+  logo        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  bills       Bill[]
+  
+  @@map("bill_providers")
+}
+
+model Bill {
+  id            String      @id @default(cuid())
+  userId        String
+  providerId    String
+  accountNumber String
+  amount        Float
+  status        String      @default("pending") // pending, paid, failed
+  dueDate       DateTime?
+  paidAt        DateTime?
+  reference     String      @unique
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider      BillProvider @relation(fields: [providerId], references: [id])
+  
+  @@map("bills")
+}
+
+model MobileMoneyProvider {
+  id          String   @id @default(cuid())
+  name        String
+  logo        String
+  countries   String   // Comma-separated country codes
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  topups      MobileMoneyTopup[]
+  
+  @@map("mobile_money_providers")
+}
+
+model MobileMoneyTopup {
+  id         String              @id @default(cuid())
+  userId     String
+  providerId String
+  phone      String
+  amount     Float
+  status     String              @default("pending") // pending, completed, failed
+  reference  String              @unique
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  
+  // Relations
+  provider   MobileMoneyProvider @relation(fields: [providerId], references: [id])
+  
+  @@map("mobile_money_topups")
+}
+
+model MerchantProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  businessName String
+  category     String
+  address      String
+  qrCode       String?
+  isVerified   Boolean  @default(false)
+  rating       Float?   @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("merchant_profiles")
+}
+
+model ProductCategory {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  icon        String
+  color       String
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  products    Product[]
+  
+  @@map("product_categories")
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  categoryId  String
+  name        String
+  description String?
+  price       Float
+  image       String
+  seller      String
+  rating      Float           @default(0)
+  stock       Int             @default(0)
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  
+  // Relations
+  category    ProductCategory @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  
+  @@map("products")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  total           Float
+  status          String      @default("pending") // pending, confirmed, shipped, delivered, cancelled
+  shippingStreet  String
+  shippingCity    String
+  shippingCountry String
+  paymentMethod   String
+  reference       String      @unique
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
+  
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  
+  // Relations
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+  
+  @@map("order_items")
+}
+
+model ExchangeRate {
+  id          String   @id @default(cuid())
+  fromCurrency String
+  toCurrency   String
+  rate         Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([fromCurrency, toCurrency])
+  @@map("exchange_rates")
+}

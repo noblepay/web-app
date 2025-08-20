@@ -1,0 +1,26 @@
+{
+    "tabs": {
+        "00": {
+            "tab_id": "00",
+            "cwd": "/data/chats/82a42858cb78463faf4e1b03825dfdc1/workspace",
+            "observer": {
+                "block": "Terminal",
+                "uuid": "72f828df-4691-4802-903b-d0fce5e2e3c1",
+                "enable_llm_stream": false,
+                "callback_url": ""
+            },
+            "shell_command": [
+                "bash"
+            ],
+            "command_terminator": "\n"
+        }
+    },
+    "current_tab_id": "00",
+    "forbidden_commands": {
+        "run preview": "Use Deployer.deploy_to_public instead.",
+        "serve ": "Use Deployer.deploy_to_public instead.",
+        "python -m http.server": "Use python -u -m http.server port_number instead."
+    },
+    "timeout": 300.0,
+    "working_dir": "/workspace"
+}
