@@ -1,11 +1,11 @@
 {
-  "timeline_index": 62,
+  "timeline_index": 75,
   "planner": {
     "Team Leader": {
       "1": {
         "task_id": "1",
         "dependent_task_ids": [],
-        "instruction": "Remove the Authentication Test component from the dashboard and replace it with a comprehensive User Profile Settings component. The project is located in /workspace/shadcn-ui directory. Create a user profile settings section that includes:\n- User profile information (name, email, phone)\n- Account settings (password change, email verification)\n- Notification preferences\n- Security settings\n- Profile picture upload\n- Account preferences\nUse React 18, TypeScript, Shadcn-UI, and Tailwind CSS. Update the Dashboard.tsx file to remove the AuthTest component and integrate the new UserProfileSettings component.",
+        "instruction": "Package the entire NoblePay app and push it to GitHub repository https://github.com/noblepay/web-app.git using the provided SSH key SHA256:fvm5xUtcyk/u8/8HISw8RpktmVuxKX5b7kAb998y3Vg. The app is located in /workspace/shadcn-ui directory. Ensure all files are properly committed, create appropriate commit messages, and push to the main branch. Include all recent changes including the User Profile Settings component and bug fixes.",
         "task_type": "general",
         "code": "",
         "result": "",
@@ -13,7 +13,7 @@
         "is_finished": true,
         "assignee": "Alex",
         "start_at": 1758729380.0269642,
-        "end_at": 1758731781.7007368
+        "end_at": 1758744020.0000973
       },
       "current_task_id": "1"
     }
@@ -80,7 +80,20 @@
     "59": 1,
     "60": 1,
     "61": 1,
-    "62": 1
+    "62": 1,
+    "63": 1,
+    "64": 1,
+    "65": 1,
+    "66": 1,
+    "67": 1,
+    "68": 1,
+    "69": 1,
+    "70": 1,
+    "71": 1,
+    "72": 1,
+    "73": 1,
+    "74": 1,
+    "75": 1
   },
   "preview_servers": {},
   "preview_server": {
