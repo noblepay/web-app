@@ -1,0 +1,200 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 2 * * 1' # Weekly on Mondays at 2 AM UTC
+
+env:
+  NODE_VERSION: '18.x'
+  PNPM_VERSION: '8.x'
+
+jobs:
+  dependency-security:
+    name: Dependency Security Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ env.PNPM_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'pnpm'
+        cache-dependency-path: 'shadcn-ui/pnpm-lock.yaml'
+
+    - name: Install frontend dependencies
+      working-directory: ./shadcn-ui
+      run: pnpm install --frozen-lockfile
+
+    - name: Install backend dependencies
+      working-directory: ./shadcn-ui/backend
+      run: npm ci
+
+    - name: Run npm audit (Frontend)
+      working-directory: ./shadcn-ui
+      run: |
+        pnpm audit --audit-level moderate --json > frontend-audit.json || true
+        pnpm audit --audit-level moderate
+
+    - name: Run npm audit (Backend)
+      working-directory: ./shadcn-ui/backend
+      run: |
+        npm audit --audit-level moderate --json > backend-audit.json || true
+        npm audit --audit-level moderate
+
+    - name: Upload audit reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-audit-reports
+        path: |
+          shadcn-ui/frontend-audit.json
+          shadcn-ui/backend/backend-audit.json
+
+  codeql-analysis:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: javascript, typescript
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ env.PNPM_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'pnpm'
+        cache-dependency-path: 'shadcn-ui/pnpm-lock.yaml'
+
+    - name: Install dependencies and build
+      working-directory: ./shadcn-ui
+      run: |
+        pnpm install --frozen-lockfile
+        pnpm build
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        category: "/language:javascript"
+
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Run GitLeaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+    - name: Run TruffleHog
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  license-compliance:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ env.PNPM_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'pnpm'
+        cache-dependency-path: 'shadcn-ui/pnpm-lock.yaml'
+
+    - name: Install dependencies
+      working-directory: ./shadcn-ui
+      run: pnpm install --frozen-lockfile
+
+    - name: Check licenses
+      working-directory: ./shadcn-ui
+      run: |
+        npx license-checker --json > licenses.json
+        npx license-checker --summary
+        
+        # Check for prohibited licenses
+        if npx license-checker --failOn 'GPL;AGPL;LGPL;CPAL;OSL;EPL;MPL' --excludePrivatePackages; then
+          echo "✅ No prohibited licenses found"
+        else
+          echo "❌ Prohibited licenses detected"
+          exit 1
+        fi
+
+    - name: Upload license report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: license-report
+        path: shadcn-ui/licenses.json
+
+  container-security:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Build Docker image (if Dockerfile exists)
+      run: |
+        if [ -f "Dockerfile" ]; then
+          docker build -t noblepay-app:${{ github.sha }} .
+          
+          # Run Trivy security scan
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            -v ${{ github.workspace }}:/workspace \
+            aquasec/trivy:latest image --format sarif --output /workspace/trivy-results.sarif noblepay-app:${{ github.sha }}
+        else
+          echo "No Dockerfile found, skipping container security scan"
+        fi
+
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always() && hashFiles('trivy-results.sarif') != ''
+      with:
+        sarif_file: 'trivy-results.sarif'

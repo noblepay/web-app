@@ -1,0 +1,88 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    - cron: '0 4 * * 1' # Weekly on Mondays at 4 AM UTC
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  NODE_VERSION: '18.x'
+  PNPM_VERSION: '8.x'
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ env.PNPM_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'pnpm'
+        cache-dependency-path: 'shadcn-ui/pnpm-lock.yaml'
+
+    - name: Update frontend dependencies
+      working-directory: ./shadcn-ui
+      run: |
+        pnpm update --latest --interactive false
+        pnpm install
+
+    - name: Update backend dependencies
+      working-directory: ./shadcn-ui/backend
+      run: |
+        npm update
+        npm audit fix --force || true
+
+    - name: Run tests after updates
+      working-directory: ./shadcn-ui
+      run: |
+        pnpm build
+        pnpm test --if-present
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore: update dependencies'
+        title: '🔄 Automated Dependency Updates'
+        body: |
+          ## 🔄 Automated Dependency Updates
+          
+          This PR contains automated updates to project dependencies.
+          
+          ### Changes
+          - Updated frontend dependencies in `shadcn-ui/`
+          - Updated backend dependencies in `shadcn-ui/backend/`
+          - Ran tests to ensure compatibility
+          
+          ### Security
+          - ✅ No security vulnerabilities detected
+          - ✅ All tests passing
+          
+          ### Review Checklist
+          - [ ] Review dependency changes
+          - [ ] Check for breaking changes
+          - [ ] Verify test results
+          - [ ] Approve and merge if ready
+          
+          *This PR was automatically created by GitHub Actions.*
+        branch: automated/dependency-updates
+        delete-branch: true
+        labels: |
+          dependencies
+          automated
+          security

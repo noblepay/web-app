@@ -1,0 +1,169 @@
+name: PR Labeler
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  label:
+    name: Auto Label PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Label based on files changed
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { data: pullRequest } = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+          });
+
+          const { data: files } = await github.rest.pulls.listFiles({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+          });
+
+          const labels = [];
+
+          // Check file patterns and add appropriate labels
+          const fileChanges = files.map(file => file.filename);
+
+          // Frontend changes
+          if (fileChanges.some(file => file.startsWith('shadcn-ui/src/'))) {
+            labels.push('frontend');
+          }
+
+          // Backend changes
+          if (fileChanges.some(file => file.startsWith('shadcn-ui/backend/'))) {
+            labels.push('backend');
+          }
+
+          // Documentation changes
+          if (fileChanges.some(file => file.match(/\.(md|txt|rst)$/i) || file.startsWith('docs/'))) {
+            labels.push('documentation');
+          }
+
+          // Configuration changes
+          if (fileChanges.some(file => file.match(/\.(json|yml|yaml|toml|ini|env)$/i))) {
+            labels.push('configuration');
+          }
+
+          // Security related
+          if (fileChanges.some(file => file.includes('security') || file.includes('auth'))) {
+            labels.push('security');
+          }
+
+          // Dependencies
+          if (fileChanges.some(file => file.match(/(package\.json|pnpm-lock\.yaml|yarn\.lock|package-lock\.json)$/))) {
+            labels.push('dependencies');
+          }
+
+          // GitHub Actions
+          if (fileChanges.some(file => file.startsWith('.github/'))) {
+            labels.push('github-actions');
+          }
+
+          // Tests
+          if (fileChanges.some(file => file.match(/\.(test|spec)\.(ts|tsx|js|jsx)$/))) {
+            labels.push('tests');
+          }
+
+          // Styling
+          if (fileChanges.some(file => file.match(/\.(css|scss|sass|less|styl)$/))) {
+            labels.push('styling');
+          }
+
+          // Check PR size
+          const additions = pullRequest.additions;
+          const deletions = pullRequest.deletions;
+          const totalChanges = additions + deletions;
+
+          if (totalChanges < 10) {
+            labels.push('size/XS');
+          } else if (totalChanges < 30) {
+            labels.push('size/S');
+          } else if (totalChanges < 100) {
+            labels.push('size/M');
+          } else if (totalChanges < 500) {
+            labels.push('size/L');
+          } else {
+            labels.push('size/XL');
+          }
+
+          // Check if it's a hotfix (based on branch name or title)
+          const branchName = pullRequest.head.ref;
+          const title = pullRequest.title.toLowerCase();
+          
+          if (branchName.includes('hotfix') || title.includes('hotfix') || title.includes('urgent')) {
+            labels.push('hotfix');
+          }
+
+          // Check for breaking changes
+          if (title.includes('!') || pullRequest.body.includes('BREAKING CHANGE')) {
+            labels.push('breaking-change');
+          }
+
+          // Add labels if any were found
+          if (labels.length > 0) {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: labels,
+            });
+          }
+
+    - name: Check PR title format
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const { data: pullRequest } = await github.rest.pulls.get({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.issue.number,
+          });
+
+          const title = pullRequest.title;
+          const conventionalCommitPattern = /^(feat|fix|docs|style|refactor|test|chore|ci|build|perf)(\(.+\))?\!?:\s.+/;
+
+          if (!conventionalCommitPattern.test(title)) {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## ⚠️ PR Title Format
+
+This PR title doesn't follow the conventional commit format. Please update it to match one of these patterns:
+
+- \`feat: add new feature\`
+- \`fix: resolve bug in component\`
+- \`docs: update documentation\`
+- \`style: format code\`
+- \`refactor: improve code structure\`
+- \`test: add test coverage\`
+- \`chore: update dependencies\`
+- \`ci: update workflow\`
+- \`build: update build config\`
+- \`perf: improve performance\`
+
+For breaking changes, add \`!\` after the type: \`feat!: breaking change\`
+
+**Current title:** \`${title}\``,
+            });
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['needs-title-fix'],
+            });
+          }

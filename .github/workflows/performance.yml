@@ -1,0 +1,198 @@
+name: Performance Testing
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 6 * * *' # Daily at 6 AM UTC
+
+env:
+  NODE_VERSION: '18.x'
+  PNPM_VERSION: '8.x'
+
+jobs:
+  lighthouse:
+    name: Lighthouse Performance Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ env.PNPM_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'pnpm'
+        cache-dependency-path: 'shadcn-ui/pnpm-lock.yaml'
+
+    - name: Install dependencies and build
+      working-directory: ./shadcn-ui
+      run: |
+        pnpm install --frozen-lockfile
+        pnpm build
+
+    - name: Serve application
+      working-directory: ./shadcn-ui
+      run: |
+        npx serve -s dist -l 3000 &
+        sleep 5
+
+    - name: Run Lighthouse CI
+      uses: treosh/lighthouse-ci-action@v10
+      with:
+        configPath: '.github/lighthouserc.json'
+        uploadArtifacts: true
+        temporaryPublicStorage: true
+        urls: |
+          http://localhost:3000
+
+    - name: Comment PR with Lighthouse results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = '.lighthouseci/lhci_reports/manifest.json';
+          
+          if (fs.existsSync(path)) {
+            const manifest = JSON.parse(fs.readFileSync(path, 'utf8'));
+            const summary = manifest[0].summary;
+            
+            const comment = `## 🚦 Lighthouse Performance Report
+            
+            | Metric | Score | Status |
+            |--------|-------|--------|
+            | Performance | ${summary.performance * 100}% | ${summary.performance >= 0.9 ? '✅' : summary.performance >= 0.7 ? '⚠️' : '❌'} |
+            | Accessibility | ${summary.accessibility * 100}% | ${summary.accessibility >= 0.9 ? '✅' : summary.accessibility >= 0.7 ? '⚠️' : '❌'} |
+            | Best Practices | ${summary['best-practices'] * 100}% | ${summary['best-practices'] >= 0.9 ? '✅' : summary['best-practices'] >= 0.7 ? '⚠️' : '❌'} |
+            | SEO | ${summary.seo * 100}% | ${summary.seo >= 0.9 ? '✅' : summary.seo >= 0.7 ? '⚠️' : '❌'} |
+            
+            [View detailed report](${manifest[0].url})`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+          }
+
+  bundle-analysis:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ env.PNPM_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'pnpm'
+        cache-dependency-path: 'shadcn-ui/pnpm-lock.yaml'
+
+    - name: Install dependencies
+      working-directory: ./shadcn-ui
+      run: pnpm install --frozen-lockfile
+
+    - name: Build and analyze bundle
+      working-directory: ./shadcn-ui
+      run: |
+        pnpm build
+        
+        # Check bundle size limits
+        BUNDLE_SIZE=$(du -sk dist | cut -f1)
+        echo "Bundle size: ${BUNDLE_SIZE}KB"
+        
+        if [ $BUNDLE_SIZE -gt 5000 ]; then
+          echo "⚠️ Bundle size exceeds 5MB limit"
+          exit 1
+        else
+          echo "✅ Bundle size is within limits"
+        fi
+
+    - name: Upload bundle analysis
+      uses: actions/upload-artifact@v3
+      with:
+        name: bundle-analysis
+        path: shadcn-ui/dist/
+
+  load-testing:
+    name: Load Testing
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: ${{ env.PNPM_VERSION }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'pnpm'
+        cache-dependency-path: 'shadcn-ui/pnpm-lock.yaml'
+
+    - name: Install dependencies and build
+      working-directory: ./shadcn-ui
+      run: |
+        pnpm install --frozen-lockfile
+        pnpm build
+
+    - name: Start application server
+      working-directory: ./shadcn-ui
+      run: |
+        npx serve -s dist -l 3000 &
+        sleep 10
+
+    - name: Run load tests with Artillery
+      run: |
+        npm install -g artillery
+        
+        # Create load test configuration
+        cat > loadtest.yml << EOF
+        config:
+          target: 'http://localhost:3000'
+          phases:
+            - duration: 60
+              arrivalRate: 10
+        scenarios:
+          - name: "Homepage load test"
+            requests:
+              - get:
+                  url: "/"
+              - get:
+                  url: "/assets/index.css"
+              - get:
+                  url: "/assets/index.js"
+        EOF
+        
+        artillery run loadtest.yml --output report.json
+        artillery report report.json --output report.html
+
+    - name: Upload load test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: load-test-results
+        path: |
+          report.json
+          report.html
