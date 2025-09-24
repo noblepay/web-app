@@ -1,11 +1,11 @@
 {
-  "timeline_index": 56,
+  "timeline_index": 62,
   "planner": {
     "Team Leader": {
       "1": {
         "task_id": "1",
         "dependent_task_ids": [],
-        "instruction": "Debug the entire NoblePay app and ensure the logout button is working properly. Check all authentication flows, verify the logout functionality across all pages, and fix any issues found. The project is located in /workspace/shadcn-ui directory. Use React 18, TypeScript, Shadcn-UI, and Tailwind CSS. Make sure to test the logout button functionality thoroughly and ensure users are properly redirected after logout.",
+        "instruction": "Remove the Authentication Test component from the dashboard and replace it with a comprehensive User Profile Settings component. The project is located in /workspace/shadcn-ui directory. Create a user profile settings section that includes:\n- User profile information (name, email, phone)\n- Account settings (password change, email verification)\n- Notification preferences\n- Security settings\n- Profile picture upload\n- Account preferences\nUse React 18, TypeScript, Shadcn-UI, and Tailwind CSS. Update the Dashboard.tsx file to remove the AuthTest component and integrate the new UserProfileSettings component.",
         "task_type": "general",
         "code": "",
         "result": "",
@@ -13,7 +13,7 @@
         "is_finished": true,
         "assignee": "Alex",
         "start_at": 1758729380.0269642,
-        "end_at": 1758729593.121739
+        "end_at": 1758731781.7007368
       },
       "current_task_id": "1"
     }
@@ -74,7 +74,13 @@
     "53": 1,
     "54": 1,
     "55": 1,
-    "56": 0
+    "56": 0,
+    "57": 1,
+    "58": 1,
+    "59": 1,
+    "60": 1,
+    "61": 1,
+    "62": 1
   },
   "preview_servers": {},
   "preview_server": {
