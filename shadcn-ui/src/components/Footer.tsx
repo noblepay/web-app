@@ -13,7 +13,7 @@ export default function Footer() {
   ];
 
   const services = [
-    { name: 'Send Money', href: '#remittance' },
+    { name: 'Send Money', href: '/remittance' },
     { name: 'Mobile Money', href: '#mobile-money' },
     { name: 'Pay Bills', href: '#bills' },
     { name: 'Merchant Pay', href: '#payments' },

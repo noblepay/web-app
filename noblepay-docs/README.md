@@ -87,7 +87,7 @@ This repository contains comprehensive project documentation for **NoblePay**, a
 4. **QR Code & P2P Payments** - Merchant and peer-to-peer transactions
 5. **E-commerce Marketplace** - Integrated shopping and payment platform
 
-### Target Markets (8 Countries)
+### Target Markets (9 Countries)
 - 🇳🇬 **Nigeria** (Primary) - 220M population, 65% unbanked
 - 🇬🇭 **Ghana** (Primary) - 33M population, 45% unbanked  
 - 🇨🇮 **Côte d'Ivoire** - 28M population, 60% unbanked

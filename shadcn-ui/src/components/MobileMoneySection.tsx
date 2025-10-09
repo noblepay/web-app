@@ -62,8 +62,8 @@ export default function MobileMoneySection() {
   ];
 
   return (
-    <section id="mobile-money" className="py-16 bg-gradient-to-br from-red-50 to-gray-50">
-      <div className="container mx-auto px-4">
+    <section id="mobile-money">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <Badge className="mb-4 bg-red-100 text-[#dd3333]">
             <Smartphone className="w-4 h-4 mr-1" />

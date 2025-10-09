@@ -65,8 +65,8 @@ export default function MarketplaceSection() {
   };
 
   return (
-    <section id="marketplace" className="py-16 bg-white">
-      <div className="container mx-auto px-4">
+    <section id="marketplace">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <Badge className="mb-4 bg-red-100 text-[#dd3333]">
             <Store className="w-4 h-4 mr-1" />

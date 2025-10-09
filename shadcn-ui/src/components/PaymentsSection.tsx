@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,8 +50,8 @@ export default function PaymentsSection() {
   ];
 
   return (
-    <section id="payments" className="py-16 bg-gradient-to-br from-red-50 to-gray-50">
-      <div className="container mx-auto px-4">
+    <section id="payments">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <Badge className="mb-4 bg-red-100 text-[#dd3333]">
             <Wallet className="w-4 h-4 mr-1" />
@@ -189,10 +190,12 @@ export default function PaymentsSection() {
                       />
                     </div>
 
-                    <Button className="w-full bg-gradient-to-r from-[#dd3333] to-[#000000] hover:from-red-700 hover:to-gray-900 text-white">
-                      <Send className="w-4 h-4 mr-2" />
-                      Send Money
-                    </Button>
+                    <Link to="/remittance">
+                      <Button className="w-full bg-gradient-to-r from-[#dd3333] to-[#000000] hover:from-red-700 hover:to-gray-900 text-white">
+                        <Send className="w-4 h-4 mr-2" />
+                        Send Money
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               </TabsContent>

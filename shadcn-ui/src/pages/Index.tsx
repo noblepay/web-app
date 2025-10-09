@@ -9,14 +9,26 @@ import Footer from '@/components/Footer.tsx';
 
 export default function Index() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-white">
       <Header />
-      <Hero />
-      <RemittanceSection />
-      <MobileMoneySection />
-      <BillsSection />
-      <PaymentsSection />
-      <MarketplaceSection />
+      <main>
+        <Hero />
+        <div className="py-16">
+          <RemittanceSection />
+        </div>
+        <div className="py-16 bg-gray-50">
+          <MobileMoneySection />
+        </div>
+        <div className="py-16">
+          <BillsSection />
+        </div>
+        <div className="py-16 bg-gray-50">
+          <PaymentsSection />
+        </div>
+        <div className="py-16">
+          <MarketplaceSection />
+        </div>
+      </main>
       <Footer />
     </div>
   );
