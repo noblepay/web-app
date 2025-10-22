@@ -158,3 +158,13 @@ private-keys/
 # Temporary files
 tmp/
 temp/
+
+# Development/IDE specific files
+.MGXTools/
+.MGXEnv.json
+.timeline.json
+.wiki.md
+code.ipynb
+
+# Uploads directory (should not be in version control)
+uploads/
